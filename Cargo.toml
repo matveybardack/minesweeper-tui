@@ -3,4 +3,22 @@ name = "minesweeper-tui"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[workspace]
+members = ["route", "client"]
+
+[workspace.dependencies]
+crossterm = "0.29.0"
+ratatui = "0.30.2"
+tokio = { version = "1.53.1", features = [
+    "net",
+    "io-util",
+    "rt",
+    "macros",
+    "time",
+    "sync",
+    "rt-multi-thread",
+] }
+thiserror = "2.0.21"
+serde = { version = "1.0.229" }
+serde_json = "1.0.151"
+dotenvy = "0.15.7"
