@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Result, write};
+use std::fmt::{Display, Formatter, Result};
 
 /// HTTP method of request
 #[derive(Debug, Clone)]

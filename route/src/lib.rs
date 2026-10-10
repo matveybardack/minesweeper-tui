@@ -45,7 +45,7 @@ pub async fn send(host: &str, port: u16, request: Request) -> Result<Response, R
 
     let body = body::read_body(&mut stream, &headers, head.leftover).await?;
 
-    stream.shutdown().await?;
+    let _ = stream.shutdown().await;
 
     Ok(Response {
         status: status_line.status_code,

@@ -41,11 +41,4 @@ impl Headers {
     pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
         self.entries.iter().map(|(n, v)| (n.as_str(), v.as_str()))
     }
-
-    /// Mutable iterator
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (String, String)> {
-        self.entries
-            .iter_mut()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-    }
 }
