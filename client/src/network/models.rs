@@ -10,14 +10,14 @@ pub enum GameStatus {
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Cell {
-    pub x: u32,
-    pub y: u32,
+    pub x: u8,
+    pub y: u8,
     pub value: u8,
 }
 
 /// Raw server response, parsing code into error
 /// # See Also
-/// ['ErrorCode'](crate::network::error::ErrorCode)
+/// [`ErrorCode`](crate::network::error::ErrorCode)
 #[derive(Debug, Clone, Deserialize)]
 pub struct ApiError {
     pub code: u16,
@@ -50,8 +50,8 @@ pub struct SearchResponse {
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct OpenCellRequest {
-    pub x: u32,
-    pub y: u32,
+    pub x: u8,
+    pub y: u8,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -65,4 +65,17 @@ pub struct OpenCellResponse {
 pub struct SurrenderResponse {
     pub status: GameStatus,
     pub seconds_left: u32,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parses_open_cell_response() {
+        let json = r#"{"cells":[{"x":0,"y":1,"value":9}],"status":"lost","seconds_left":42}"#;
+        let r: OpenCellResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(r.status, GameStatus::Lost);
+        assert_eq!(r.cells[0].value, 9);
+    }
 }

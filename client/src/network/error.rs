@@ -1,5 +1,6 @@
 use crate::network::models::ApiError;
 
+/// Server error code response
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     InvalidRequest,      // 1000
@@ -34,5 +35,22 @@ impl From<u16> for ErrorCode {
 impl ApiError {
     pub fn kind(&self) -> ErrorCode {
         self.code.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_known_code() {
+        let e: ApiError = serde_json::from_str(r#"{"code":3001,"message":"x"}"#).unwrap();
+        assert_eq!(e.kind(), ErrorCode::GameNotFound);
+    }
+
+    #[test]
+    fn parses_unknown_code() {
+        let e: ApiError = serde_json::from_str(r#"{"code":4000,"message":"x"}"#).unwrap();
+        assert_eq!(e.kind(), ErrorCode::Unknown(4000));
     }
 }
