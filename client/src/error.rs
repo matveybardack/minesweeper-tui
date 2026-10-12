@@ -1,5 +1,5 @@
 use crate::network::models::ApiError;
-use std::io::Error;
+use std::mem::discriminant;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -12,9 +12,15 @@ pub enum AppError {
     #[error("api error {}: {}", .0.code, .0.message)]
     Api(ApiError),
     #[error("io error: {0}")]
-    Io(#[from] Error),
+    Io(#[from] std::io::Error),
     #[error("unexpected error status: {status}")]
     UnexpectedError { status: u16 },
     #[error("server returned wrong content {content}")]
     WrongContent { content: String },
+}
+
+impl PartialEq for AppError {
+    fn eq(&self, other: &Self) -> bool {
+        discriminant(self) == discriminant(other)
+    }
 }

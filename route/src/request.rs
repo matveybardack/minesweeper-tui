@@ -32,6 +32,7 @@ impl Request {
         if !self.body.is_empty() && headers.get("Content-Length").is_none() {
             headers.insert("Content-Length", self.body.len().to_string());
         }
+        // poka-yoka for server, which can`t parse without this header
         if !self.body.is_empty() || matches!(self.method, Method::Post) {
             headers.insert("Content-Length", "0");
         }
