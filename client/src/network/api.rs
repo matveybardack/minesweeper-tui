@@ -24,14 +24,28 @@ async fn post(
     Ok(route::send(&cfg.server_addr, cfg.server_port, builder.build()).await?)
 }
 
+/// Post request for searching minesweeper game
+/// # Params
+/// cfg - client`s config
+/// session_id - active session from [auth](crate::network::api::auth)
+/// # See Also
+/// [Config](crate::config::Config)
+/// [AppError]
+/// [SearchResponse]
 pub async fn search_game(cfg: &Config, session_id: &str) -> Result<SearchResponse, AppError> {
     let resp = post(cfg, "/games/minesweeper/search", Some(session_id), None).await?;
     decode(&into_success(resp)?)
 }
 
-pub async fn auth(cfg: &Config, nickname: &str) -> Result<String, AppError> {
+/// Post request for authentificate user on server
+/// # Params
+/// cfg - client`s config
+/// # See Also
+/// [Config](crate::config::Config)
+/// [AppError]
+pub async fn auth(cfg: &Config) -> Result<String, AppError> {
     let body = serde_json::to_vec(&AuthRequest {
-        nickname: nickname.to_string(),
+        nickname: cfg.player_nickname.to_string(),
     })?;
     let resp = post(cfg, "/auth", None, Some(body)).await?;
     let resp: AuthResponse = decode(&into_success(resp)?)?;
@@ -39,6 +53,13 @@ pub async fn auth(cfg: &Config, nickname: &str) -> Result<String, AppError> {
     Ok(resp.session_id)
 }
 
+/// Post request for cancelling active request of searching minesweeper game
+/// # Params
+/// cfg - client`s config
+/// session_id - active session from [auth](crate::network::api::auth)
+/// # See Also
+/// [Config](crate::config::Config)
+/// [AppError]
 pub async fn cancel_search(cfg: &Config, session_id: &str) -> Result<(), AppError> {
     let resp = post(
         cfg,
@@ -51,6 +72,17 @@ pub async fn cancel_search(cfg: &Config, session_id: &str) -> Result<(), AppErro
     Ok(())
 }
 
+/// Post request for openning new cell on board
+/// # Params
+/// cfg - client`s config
+/// session_id - active session from [auth](crate::network::api::auth)
+/// game_id - id of the game to open cell on
+/// x - ordinate
+/// y - abciss (i`m too lazy)
+/// # See Also
+/// [OpenCellResponse]
+/// [Config](crate::config::Config)
+/// [AppError]
 pub async fn open_cell(
     cfg: &Config,
     session_id: &str,
@@ -69,6 +101,15 @@ pub async fn open_cell(
     decode(&into_success(resp)?)
 }
 
+/// Post for surrendering from game
+/// # Params
+/// cfg - client`s config
+/// session_id - active session from [auth](crate::network::api::auth)
+/// game_id - id of the game to surrender on
+/// # See Also
+/// [SurrenderResponse]
+/// [Config](crate::config::Config)
+/// [AppError]
 pub async fn surrender(
     cfg: &Config,
     session_id: &str,
