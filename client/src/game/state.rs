@@ -1,10 +1,8 @@
-use crossterm::cursor;
-
 use crate::error::AppError;
-use crate::game::board::{self, Board};
+use crate::game::board::Board;
 use crate::game::timer::Timer;
 use crate::network::models::GameStatus;
-use crate::network::models::{BoardSize, OpenCellResponse, SearchResponse};
+use crate::network::models::{OpenCellResponse, SearchResponse};
 use std::time::Instant;
 
 /// Reason of game ending
@@ -52,12 +50,28 @@ impl GameState {
     }
 
     pub fn finish(&mut self, outcome: Outcome) {
-        *self = GameState::Finished(outcome);
+        if matches!(self, GameState::Playing(_)) {
+            *self = GameState::Finished(outcome);
+        }
     }
 
-    pub fn search_finished_with(&mut self, data: SearchResponse) -> Result<(), AppError> {
+    pub fn to_menu(&mut self) {
+        if matches!(self, GameState::Searching { .. } | GameState::Finished(_)) {
+            *self = GameState::Menu;
+        }
+    }
+
+    pub fn search_finished_with_at(
+        &mut self,
+        data: SearchResponse,
+        now: Instant,
+    ) -> Result<(), AppError> {
+        let GameState::Searching { .. } = self else {
+            return Ok(());
+        };
+
         let board = Board::new(data.board_size, &data.known_cells)?;
-        let timer = Timer::new_at(data.timer_seconds, Instant::now());
+        let timer = Timer::new_at(data.timer_seconds, now);
         let play = Playing {
             game_id: data.game_id,
             board,
@@ -69,20 +83,60 @@ impl GameState {
         Ok(())
     }
 
-    //pub fn apply_move(
-    ////&mut self,
-    ////cell_resp: &OpenCellResponse,
-    ////now: Instant,
-    //) -> Result<(), AppError> {
-    ////match
-    //}
+    pub fn apply_move_at(&mut self, resp: &OpenCellResponse, now: Instant) -> Result<(), AppError> {
+        let GameState::Playing(game) = self else {
+            return Ok(());
+        };
+
+        let mine_opened = game.board.apply(&resp.cells)?;
+        let outcome = outcome_of(resp.status, mine_opened, resp.seconds_left == 0)?;
+
+        game.timer.reset_at(resp.seconds_left, now);
+        if let Some(outcome) = outcome {
+            *self = GameState::Finished(outcome);
+        }
+        Ok(())
+    }
 }
 
-pub fn outcome_of(resp: &OpenCellResponse) -> Option<Outcome> {
-    match resp.status {
+fn outcome_of(
+    status: GameStatus,
+    mine_opened: bool,
+    is_expired: bool, // Граничный случай сервера, когда таймер истек во время отправки ответа
+) -> Result<Option<Outcome>, AppError> {
+    if mine_opened && status != GameStatus::Lost {
+        return Err(AppError::WrongContent {
+            content: format!("status {status:?} with an opened mine"),
+        });
+    }
+    let ans = match status {
         GameStatus::Playing => None,
         GameStatus::Won => Some(Outcome::Won),
-        GameStatus::Lost if resp.cells.iter().any(|c| c.value == 9) => Some(Outcome::LostByMine),
+        GameStatus::Lost if mine_opened => Some(Outcome::LostByMine),
+        GameStatus::Lost if is_expired => Some(Outcome::LostByTimeout),
         GameStatus::Lost => Some(Outcome::LostByOpponent),
+    };
+
+    Ok(ans)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn outcome_mine_won() {
+        let status = GameStatus::Won;
+        let mine_opened = true;
+        let is_expired = false;
+
+        let res = outcome_of(status, mine_opened, is_expired).expect_err("Expect error");
+
+        assert_eq!(
+            AppError::WrongContent {
+                content: "status Won with an opened mine".to_string()
+            },
+            res
+        );
     }
 }

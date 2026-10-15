@@ -53,7 +53,8 @@ impl Board {
     }
 
     /// Open cells on the board, atomic operation
-    pub fn apply(&mut self, cells: &[Cell]) -> Result<(), AppError> {
+    /// and return true if found a mine
+    pub fn apply(&mut self, cells: &[Cell]) -> Result<bool, AppError> {
         let mut updates = Vec::with_capacity(cells.len());
         for c in cells {
             let idx = self.index(c.x, c.y).ok_or_else(|| AppError::WrongContent {
@@ -62,11 +63,13 @@ impl Board {
             updates.push((idx, Opened::try_from(c.value)?));
         }
 
+        let mut mine_opened = false;
         for (idx, state) in updates {
             self.cells[idx] = CellState::Open(state);
+            mine_opened |= state == Opened::Mine;
         }
 
-        Ok(())
+        Ok(mine_opened)
     }
 
     pub fn index(&self, x: u8, y: u8) -> Option<usize> {
@@ -90,6 +93,20 @@ impl Board {
 
     pub fn get(&self, x: u8, y: u8) -> Option<CellState> {
         self.index(x, y).map(|i| self.cells[i])
+    }
+
+    /// Not safety method (x, y can be out of bounds)
+    #[warn(unused)]
+    fn into_cell(&self, idx: usize) -> Cell {
+        return Cell {
+            x: (idx % self.width as usize) as u8,
+            y: (idx / self.width as usize) as u8,
+            value: match self.cells[idx] {
+                CellState::Closed | CellState::Flagged => 0,
+                CellState::Open(Opened::Number(n)) => n,
+                CellState::Open(Opened::Mine) => 9,
+            },
+        };
     }
 }
 
