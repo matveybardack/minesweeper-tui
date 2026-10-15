@@ -33,7 +33,7 @@ pub enum CellState {
 }
 
 /// Game board
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Board {
     pub width: u8,
     pub height: u8,
